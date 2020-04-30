@@ -1,0 +1,10 @@
+C:\Users\mtome\Desktop\Damka\Damka\Damka\bin\Debug\Damka.exe.config
+C:\Users\mtome\Desktop\Damka\Damka\Damka\bin\Debug\Damka.exe
+C:\Users\mtome\Desktop\Damka\Damka\Damka\bin\Debug\Damka.pdb
+C:\Users\mtome\Desktop\Damka\Damka\Damka\obj\Debug\Damka.csprojAssemblyReference.cache
+C:\Users\mtome\Desktop\Damka\Damka\Damka\obj\Debug\Damka.Properties.Resources.resources
+C:\Users\mtome\Desktop\Damka\Damka\Damka\obj\Debug\Damka.csproj.GenerateResource.cache
+C:\Users\mtome\Desktop\Damka\Damka\Damka\obj\Debug\Damka.csproj.CoreCompileInputs.cache
+C:\Users\mtome\Desktop\Damka\Damka\Damka\obj\Debug\Damka.exe
+C:\Users\mtome\Desktop\Damka\Damka\Damka\obj\Debug\Damka.pdb
+C:\Users\mtome\Desktop\Damka\Damka\Damka\obj\Debug\Damka.Damka.resources
