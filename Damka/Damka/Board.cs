@@ -15,6 +15,7 @@ namespace Damka
 
         public Board(Damka form)
         {
+            this.Location = new Point(0, 24);
             this.Width = 800;
             this.Height = 800;
             this.ColumnCount = 8;
@@ -33,6 +34,7 @@ namespace Damka
                     tmpCell.Size = new Size(this.Width / 8, this.Height / 8);
                     tmpCell.BackgroundImageLayout = ImageLayout.Stretch;
                     tmpCell.Click += new EventHandler(form.Button_Click);
+                    tmpCell.FlatStyle = FlatStyle.Flat;
 
                     if (j % 2 == 0)
                     {
@@ -75,7 +77,55 @@ namespace Damka
                     this.board[i, j] = tmpCell;
                     this.damkaBoard.SetValueByIndex(i, j, tmpCell.GetPieceValue());
                     this.Controls.Add(tmpCell);
-                 }
+                }
+            }
+        }
+
+        private void SetCell(Cell cell)
+        {
+            int i = cell.colume;
+            int j = cell.row;
+            cell.SetPieceWithText(Piece.Nothing);
+            if (j % 2 == 0)
+            {
+                if (i % 2 != 0)
+                {
+                    if (i > 4)
+                    {
+                        cell.SetPieceWithText(Piece.RedPiece);
+                    }
+                    else if (i < 3)
+                    {
+                        cell.SetPieceWithText(Piece.BlackPiece);
+                    }
+                }
+            }
+            else
+            {
+                if (i % 2 == 0)
+                {
+                    if (i > 4)
+                    {
+                        cell.SetPieceWithText(Piece.RedPiece);
+                    }
+                    else if (i < 3)
+                    {
+                        cell.SetPieceWithText(Piece.BlackPiece);
+                    }
+                }
+            }
+            cell.SetToOriginalColor();
+            this.damkaBoard.SetValueByIndex(i, j, cell.GetPieceValue());
+        }
+
+        public void Reset()
+        {
+            for (int i = 0; i < 8; i++)
+            {
+                for (int j = 0; j < 8; j++)
+                {
+                    SetCell(this.board[i, j]);
+                }
             }
         }
 
@@ -90,8 +140,13 @@ namespace Damka
             }
             this.damkaBoard = board.Clone();
         }
+        
+        public DamkaBoard GetDamkaBoard()
+        {
+            return this.damkaBoard;
+        }
 
-        private void GetMovedToCell(DamkaBoard otherBoard, bool isSkip)
+        private void GetMovedToCell(DamkaBoard otherBoard)
         {
             Piece[,] thisPices = this.damkaBoard.GetBoard();
             Piece[,] otherPices = otherBoard.GetBoard();
@@ -104,7 +159,7 @@ namespace Damka
                     {
                         Cell cell = this.board[i, j];
                         cell.SetBoard(otherBoard);
-                        cell.BackColor = isSkip ? Color.Red : Color.Green;
+                        cell.BackColor = Color.Green;
                     }
                 }
             }
@@ -125,11 +180,11 @@ namespace Damka
             }
         }
 
-        private void GetMovedToCells(DamkaBoard[] damkaBoards, bool isSkip)
+        private void GetMovedToCells(DamkaBoard[] damkaBoards)
         {
             foreach (DamkaBoard board in damkaBoards)
             {
-                GetMovedToCell(board, isSkip);
+                GetMovedToCell(board);
             }
         }
 
@@ -138,24 +193,17 @@ namespace Damka
         {
             int y = clickedCell.colume;
             int x = clickedCell.row;
-            if (this.damkaBoard.GetPieceByIndex(y,x) == Piece.Nothing)
+            Piece currentPiece = this.damkaBoard.GetPieceByIndex(y, x);
+            if (currentPiece != Piece.RedPiece && currentPiece != Piece.RedQueen)
             {
                 return;
             }
 
-            DamkaBoard[] skipMoves = this.damkaBoard.GetAvailableSkipMoves(y, x);
-            if (skipMoves.Length > 0)
-            {
-                GetMovedToCells(skipMoves, true);
-            }
+            DamkaBoard[] moves = this.damkaBoard.GetAllMovesWithIndex(y, x);
 
-            else
+            if (moves.Length > 0)
             {
-                DamkaBoard[] normalMoves = this.damkaBoard.GetAvailableNormalMoves(y, x);
-                if (normalMoves.Length > 0)
-                {
-                    GetMovedToCells(normalMoves, false);
-                }
+                GetMovedToCells(moves);
             }
         }
     }
@@ -216,11 +264,25 @@ namespace Damka
         public void SetPieceWithText(Piece piece)
         {
             SetPiece(piece);
+            if (this.InvokeRequired)
+            {
+                this.Invoke((MethodInvoker)delegate ()
+                {
+                    SetPieceWithImage();
+                });
+            }
+            else
+            {
+                SetPieceWithImage();
+            }
+        }
+        private void SetPieceWithImage()
+        {
             if (piece == Piece.Nothing)
             {
                 this.BackgroundImage = null;
             }
-            else if(piece == Piece.RedPiece)
+            else if (piece == Piece.RedPiece)
             {
                 this.BackgroundImage = Properties.Resources.RedPiece_remove;
             }
@@ -228,7 +290,7 @@ namespace Damka
             {
                 this.BackgroundImage = Properties.Resources.BlackPiece_remove;
             }
-            else if(piece == Piece.RedQueen)
+            else if (piece == Piece.RedQueen)
             {
                 this.BackgroundImage = Properties.Resources.RedQueen_remove;
             }
@@ -266,6 +328,14 @@ namespace Damka
             {
                 return Winner.Black;
             }
+            else if (GetAllMoves(true).Length == 0)
+            {
+                return Winner.Black;
+            }
+            else if (GetAllMoves(false).Length == 0)
+            {
+                return Winner.Red;
+            }
             return Winner.NoOne;
         } 
 
@@ -296,6 +366,33 @@ namespace Damka
             return pices;
         }
 
+        private PieceForEvaluation[] GetPiecesForEvaluation()
+        {
+            int counter = 0;
+            PieceForEvaluation[] pieces = new PieceForEvaluation[64];
+            for (int i = 0; i < 8; i++)
+            {
+                for (int j = 0; j < 8; j++)
+                {
+                    pieces[counter] = new PieceForEvaluation(i, j, GetPieceByIndex(i, j));
+                    counter++;
+                }
+            }
+            return pieces;
+        }
+
+        public int Evaluate()
+        {
+            switch (WhoWins())
+            {
+                case Winner.Red:
+                    return int.MinValue+1;
+                case Winner.Black:
+                    return int.MaxValue-1;
+            }
+            return PieceForEvaluation.GetEval(GetPiecesForEvaluation());
+        }
+
         public DamkaBoard Clone()
         {
             DamkaBoard newBoard = new DamkaBoard();
@@ -307,6 +404,118 @@ namespace Damka
                 }
             }
             return newBoard;
+        }
+
+        private bool IsSkipRequired(int y, int x)
+        {
+            Piece piece = GetPieceByIndex(y, x);
+            for (int i = 0; i < 8; i++)
+            {
+                for (int j = 0; j < 8; j++)
+                {
+                    Piece tmpPiece = GetPieceByIndex(j, i);
+                    if (piece == Piece.RedPiece || piece == Piece.RedQueen ? tmpPiece == Piece.RedPiece || tmpPiece == Piece.RedQueen : tmpPiece == Piece.BlackPiece || tmpPiece == Piece.BlackQueen)
+                    {
+                        if (GetAvailableSkipMoves(j, i).Length > 0)
+                        {
+                            return true;
+                        }
+                    }                    
+                }
+            }
+            return false;
+        }
+
+        private bool IsSkipRequired(bool isRed)
+        {
+            Piece piece = isRed ? Piece.RedPiece : Piece.BlackPiece;
+            for (int i = 0; i < 8; i++)
+            {
+                for (int j = 0; j < 8; j++)
+                {
+                    Piece tmpPiece = GetPieceByIndex(j, i);
+                    if (isRed ? tmpPiece == Piece.RedPiece || tmpPiece == Piece.RedQueen : tmpPiece == Piece.BlackPiece || tmpPiece == Piece.BlackQueen)
+                    {
+                        if (GetAvailableSkipMoves(j, i).Length > 0)
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        public DamkaBoard[] GetAllMovesWithIndex(int y, int x)
+        {
+            if (IsSkipRequired(y, x))
+            {
+                DamkaBoard[] skipMoves = GetAvailableSkipMoves(y, x);
+                if (skipMoves.Length > 0)
+                {
+                    return skipMoves;
+                }
+                else
+                {
+                    return new DamkaBoard[0];
+                }
+            }
+            else
+            {
+                return GetAvailableNormalMoves(y, x);
+            }
+        }
+
+        private DamkaBoard[] GetAllMovesWithIndex(int y, int x, bool isSkipRequired)
+        {
+            if (isSkipRequired)
+            {
+                DamkaBoard[] skipMoves = GetAvailableSkipMoves(y, x);
+                if (skipMoves.Length > 0)
+                {
+                    return skipMoves;
+                }
+                else
+                {
+                    return new DamkaBoard[0];
+                }
+            }
+            else
+            {
+                return GetAvailableNormalMoves(y, x);
+            }
+        }
+
+        private int[][] GetAllIndexesFromColor(bool isRed)
+        {
+            List<int[]> indexes = new List<int[]>();
+            Piece[,] picesArr = GetBoard();
+            for (int i = 0; i < 8; i++)
+            {
+                for (int j = 0; j < 8; j++)
+                {
+                    Piece thisPiece = GetPieceByIndex(i, j);
+                    if (thisPiece != Piece.Nothing)
+                    {
+                        if (isRed? thisPiece == Piece.RedPiece || thisPiece == Piece.RedQueen : thisPiece == Piece.BlackPiece || thisPiece == Piece.BlackQueen)
+                        {
+                            indexes.Add(new int[2] { i, j });
+                        }
+                    }
+                }
+            }
+            return indexes.ToArray();
+        }
+
+        public DamkaBoard[] GetAllMoves(bool isRed)
+        {
+            List<DamkaBoard> moves = new List<DamkaBoard>();
+            bool isSkipRequired = IsSkipRequired(isRed);
+            foreach (int[] index in GetAllIndexesFromColor(isRed))
+            {
+                moves.AddRange(GetAllMovesWithIndex(index[0], index[1], isSkipRequired));
+            }
+            return moves.ToArray();
         }
 
         public void Move(int fromY, int fromX, int toY, int toX)
@@ -511,7 +720,7 @@ namespace Damka
                             }
                         }
                     }
-
+                    
                     if (rX < 8)
                     {
                         Piece nextPiece = GetPieceByIndex(uY, rX, board);
@@ -677,6 +886,8 @@ namespace Damka
             return moves.ToArray();
         }
     }
+
+    
     enum Winner : byte
     {
         Red,
