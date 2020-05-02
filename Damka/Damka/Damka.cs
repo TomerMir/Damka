@@ -119,44 +119,6 @@ namespace Damka
             }
         }
 
-        private DamkaBoard GetBlackBestMove(int depth)
-        {
-            DamkaBoard[] moves = this.board.GetDamkaBoard().GetAllMoves(false);
-            DamkaBoard[] shuffledMoves = moves.OrderBy(a => Guid.NewGuid()).ToArray();
-
-            int bestEval = int.MinValue;
-            DamkaBoard bestMove = null;
-            int moveEval;
-
-            foreach (DamkaBoard move in moves)
-            {
-                Winner winner = move.WhoWins();
-                if (winner == Winner.Black)
-                {
-                    moveEval = int.MaxValue - 1;
-                }
-                else if (winner == Winner.Red)
-                {
-                    moveEval = int.MinValue + 1;
-                }
-                else
-                {
-                    moveEval = MinMax(move, depth, true);
-                }
-                if (moveEval > bestEval)
-                {
-                    if (moveEval == int.MaxValue - 1)
-                    {
-                        bestMove = move;
-                        break;
-                    }
-                    bestEval = moveEval;
-                    bestMove = move;
-                }
-            }
-            return bestMove;
-        }
-
         private void ShowMove(DamkaBoard move)
         {
             this.board.AppendFromDamkaBoard(move);
@@ -165,47 +127,13 @@ namespace Damka
             Application.DoEvents();
         }
 
-        private DamkaBoard GetRedBestMove(int depth)
-        {
-            DamkaBoard[] moves = this.board.GetDamkaBoard().GetAllMoves(true);
-            DamkaBoard[] shuffledMoves = moves.OrderBy(a => Guid.NewGuid()).ToArray();
-
-            int bestEval = int.MaxValue;
-            DamkaBoard bestMove = null;
-            int moveEval;
-
-            foreach (DamkaBoard move in shuffledMoves)
-            {
-                Winner winner = move.WhoWins();
-                if (winner == Winner.Black)
-                {
-                    moveEval = int.MaxValue - 1;
-                }
-                else if (winner == Winner.Red)
-                {
-                    moveEval = int.MinValue + 1;
-                }
-                else
-                {
-                    moveEval = MinMax(move, depth, false);
-                }
-                if (moveEval < bestEval)
-                {
-                    if (moveEval == int.MinValue + 1)
-                    {
-                        bestMove = move;
-                        break;
-                    }
-                    bestEval = moveEval;
-                    bestMove = move;
-                }
-            }
-            return bestMove;
-        }
-
         private DamkaBoard GetBestMove(int depth, bool isRed)
         {
             DamkaBoard[] moves = this.board.GetDamkaBoard().GetAllMoves(isRed);
+            if (moves.Length == 1)
+            {
+                return moves[0];
+            }
             this.movesWithEvaluations = new List<Tuple<DamkaBoard, int>>(moves.Length);
             DamkaBoard[] shuffledMoves = moves.OrderBy(a => Guid.NewGuid()).ToArray();
             foreach (DamkaBoard move in shuffledMoves)
@@ -281,7 +209,7 @@ namespace Damka
         {
             UncheckAll();
             ((ToolStripMenuItem)sender).Checked = true;
-            this.depth = 10;
+            this.depth = 9;
         }
     }
 }

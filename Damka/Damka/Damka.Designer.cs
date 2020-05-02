@@ -82,7 +82,7 @@
             // 
             this.superHard2030SecondsToolStripMenuItem.Name = "superHard2030SecondsToolStripMenuItem";
             this.superHard2030SecondsToolStripMenuItem.Size = new System.Drawing.Size(219, 22);
-            this.superHard2030SecondsToolStripMenuItem.Text = "Super Hard - 20-30 seconds";
+            this.superHard2030SecondsToolStripMenuItem.Text = "Super Hard - 15-30 seconds";
             this.superHard2030SecondsToolStripMenuItem.Click += new System.EventHandler(this.SuperHard2030SecondsToolStripMenuItem_Click);
             // 
             // Damka
