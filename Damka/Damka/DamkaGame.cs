@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -120,6 +121,7 @@ namespace Damka
 
         public void Reset()
         {
+            this.damkaBoard = new DamkaBoard();
             for (int i = 0; i < 8; i++)
             {
                 for (int j = 0; j < 8; j++)
@@ -304,7 +306,8 @@ namespace Damka
     class DamkaBoard
     {
         private byte[,] board = new byte[8, 4];
-        
+        private int numberOfMovesWithoutSkips = 0;
+
         public void SetValueByIndex(int i, int j, int value)
         {
             this.board[i, j/2] = Utilities.SetByteValue(this.board[i, j/2], value, j % 2 == 0);
@@ -317,6 +320,42 @@ namespace Damka
         {
             return (Piece)Utilities.GetByteValue(board.board[i, j / 2], j % 2 == 0);
         }
+
+        public int GetNumberOfMovesWithoutSkips()
+        {
+            return this.numberOfMovesWithoutSkips;
+        }
+
+        public double[] GetInputForNeuralNetwork()
+        {
+            double[] input = new double[32];
+            int counter = 0;
+            for (int i = 0; i < 8; i++)
+            {
+                for (int j = 0; j < 8; j++)
+                {
+                    if (j % 2 == 0)
+                    {
+                        if (i % 2 != 0)
+                        {
+                            input[counter] = (int)GetPieceByIndex(j, i);
+                            counter++;
+                        }
+                    }
+                    else
+                    {
+                        if (i % 2 == 0)
+                        {
+                            input[counter] = (int)GetPieceByIndex(j, i);
+                            counter++;
+                        }
+                    }
+                }
+            }
+
+            return input;
+        }
+
         public Winner WhoWins()
         {
             int[] pices = GetPices();
@@ -335,6 +374,11 @@ namespace Damka
             else if (GetAllMoves(false).Length == 0)
             {
                 return Winner.Red;
+            }
+
+            if (this.numberOfMovesWithoutSkips == 30)
+            {
+                return Winner.Draw;
             }
             return Winner.NoOne;
         } 
@@ -389,6 +433,8 @@ namespace Damka
                     return int.MinValue+1;
                 case Winner.Black:
                     return int.MaxValue-1;
+                case Winner.Draw:
+                    return 0;
             }
             return PieceForEvaluation.GetEval(GetPiecesForEvaluation());
         }
@@ -403,6 +449,7 @@ namespace Damka
                     newBoard.board[i, j] = this.board[i, j];
                 }
             }
+            newBoard.numberOfMovesWithoutSkips = this.numberOfMovesWithoutSkips;
             return newBoard;
         }
 
@@ -520,6 +567,7 @@ namespace Damka
 
         public void Move(int fromY, int fromX, int toY, int toX)
         {
+            this.numberOfMovesWithoutSkips++;
             Piece piece = GetPieceByIndex(fromY, fromX);
             if (piece == Piece.RedPiece && toY == 0)
             {
@@ -543,6 +591,7 @@ namespace Damka
             int avrX = (fromX + toX) / 2;
             Move(fromY, fromX, toY, toX);
             this.board[avrY, avrX/2] = Utilities.SetByteValue(this.board[avrY, avrX / 2], (int)Piece.Nothing, avrX % 2 == 0);
+            this.numberOfMovesWithoutSkips = 0;
         }
 
         public DamkaBoard CloneSkip(int fromY, int fromX, int toY, int toX)
@@ -885,13 +934,44 @@ namespace Damka
             
             return moves.ToArray();
         }
-    }
 
+        public string Hash()
+        {           
+            string hash;
+            using (SHA1CryptoServiceProvider sha1 = new SHA1CryptoServiceProvider())
+            {
+                hash = Convert.ToBase64String(sha1.ComputeHash(ConvertTo1DArray()));
+            }
+            hash = hash.Replace("/", "_");
+            return hash;
+        }
+
+        public byte[] ConvertTo1DArray()
+        {
+            byte[] oneDBoard = new byte[this.board.Length];
+            Buffer.BlockCopy(this.board, 0, oneDBoard, 0, this.board.Length);
+            return oneDBoard;
+        }
+
+        public static byte[,] ConvertTo2DArray(byte[] array)
+        {
+            byte[,] output = new byte[8, 4];
+            for (int i = 0; i < 8; i++)
+            {
+                for (int j = 0; j < 4; j++)
+                {
+                    output[i, j] = array[i * 4 + j];
+                }
+            }
+            return output;
+        }
+    }
     
     enum Winner : byte
     {
         Red,
         Black,
+        Draw,
         NoOne
     }
 

@@ -4,11 +4,13 @@ using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Damka.Evaluate;
 
 namespace Damka
 {
@@ -17,7 +19,9 @@ namespace Damka
         Board board;
         List<Tuple<DamkaBoard, int>> movesWithEvaluations;
         bool isThinking = false;
+        private Thread doTurn;
         private int depth;
+        private string directoryPath;
         public Damka()
         {
             InitializeComponent();
@@ -29,7 +33,58 @@ namespace Damka
             this.MaximizeBox = false;
             this.medium36SecondsToolStripMenuItem.Checked = true;
             this.depth = 6;
-            //this.board.AppendFromDamkaBoard(GetBestMove(10, false));
+
+            //file
+            string directoryPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "\\Damka";
+            if (!Directory.Exists(directoryPath))
+            {
+                DirectoryInfo directory = Directory.CreateDirectory(directoryPath);
+                directory.Attributes = FileAttributes.Directory | FileAttributes.Hidden;
+            }
+            this.directoryPath = directoryPath;
+        }
+
+        private void BotGames(int firstDepthm, int secondDepth)
+        {
+            while (true)
+            {
+                ShowMove(GetBestMove(firstDepthm, true));
+                switch (this.board.GetDamkaBoard().WhoWins())
+                {
+                    case Winner.Black:
+                        MessageBox.Show("Black won!");
+                        this.board.Reset();
+                        break;
+
+                    case Winner.Red:
+                        MessageBox.Show("Red won!");
+                        this.board.Reset();
+                        break;
+
+                    case Winner.Draw:
+                        MessageBox.Show("Tie");
+                        this.board.Reset();
+                        break;
+                }
+                ShowMove(GetBestMove(secondDepth, false));
+                switch (this.board.GetDamkaBoard().WhoWins())
+                {
+                    case Winner.Black:
+                        MessageBox.Show("Black won!");
+                        this.board.Reset();
+                        break;
+
+                    case Winner.Red:
+                        MessageBox.Show("Red won!");
+                        this.board.Reset();
+                        break;
+
+                    case Winner.Draw:
+                        MessageBox.Show("Tie");
+                        this.board.Reset();
+                        break;
+                }
+            }
         }
 
         public void Button_Click(object sender, EventArgs e)
@@ -38,7 +93,7 @@ namespace Damka
             {
                 return;
             }
-            Thread DoTurn = new Thread(() =>
+            this.doTurn = new Thread(() =>
             {
                 this.isThinking = true;
                 Cell clickedCell = sender as Cell;
@@ -68,6 +123,11 @@ namespace Damka
                             MessageBox.Show("Red won!");
                             this.board.Reset();
                             break;
+
+                        case Winner.Draw:
+                            MessageBox.Show("Tie");
+                            this.board.Reset();
+                            break;
                     }
                     this.isThinking = false;
                     return;
@@ -76,7 +136,7 @@ namespace Damka
                 this.board.ShowMoves(clickedCell);
                 this.isThinking = false;
             });
-            DoTurn.Start();
+            this.doTurn.Start();
         }
 
         private int MinMax(DamkaBoard board, int depth, bool isRed, int alpha = int.MinValue, int beta = int.MaxValue)
@@ -148,7 +208,14 @@ namespace Damka
                     {
                         return null;
                     }
-                    movesWithEvaluations.Sort((x, y) => y.Item2.CompareTo(x.Item2));
+                    if (isRed)
+                    {
+                        movesWithEvaluations.Sort((x, y) => x.Item2.CompareTo(y.Item2));
+                    }
+                    else
+                    {
+                        movesWithEvaluations.Sort((x, y) => y.Item2.CompareTo(x.Item2));
+                    }
                     return movesWithEvaluations.First().Item1;
                 }
             }
@@ -210,6 +277,45 @@ namespace Damka
             UncheckAll();
             ((ToolStripMenuItem)sender).Checked = true;
             this.depth = 9;
+        }
+
+        private void ResetTurnThread()
+        {
+            if (this.doTurn == null)
+            {
+                return;
+            }
+            if (this.doTurn.IsAlive)
+            {
+                this.doTurn.Abort();
+            }
+            this.isThinking = false;
+        }
+
+        private void ResetToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            ResetTurnThread();
+            this.board.Reset();
+        }
+
+        private void SaveToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (this.isThinking)
+            {
+                MessageBox.Show("Can't save now, wait for your opponent to end his turn...");
+                return;
+            }
+            string hash = this.board.GetDamkaBoard().Hash();
+            string filePath = this.directoryPath + "\\" + hash;
+            if (File.Exists(filePath))
+            {
+                MessageBox.Show("You have already saved this board");
+                return;
+            }
+            FileStream myFile = File.Create(filePath);
+            myFile.Close();
+            File.WriteAllBytes(filePath, this.board.GetDamkaBoard().ConvertTo1DArray());
+            File.SetAttributes(filePath, FileAttributes.ReadOnly);
         }
     }
 }

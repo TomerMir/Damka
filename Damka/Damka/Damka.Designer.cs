@@ -28,19 +28,24 @@
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Damka));
             this.Upper_Menu = new System.Windows.Forms.MenuStrip();
             this.levelToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.easyInstantToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.medium36SecondsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.hard710SecondsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.superHard2030SecondsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.boardToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.saveToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.resetToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.Upper_Menu.SuspendLayout();
             this.SuspendLayout();
             // 
             // Upper_Menu
             // 
             this.Upper_Menu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.levelToolStripMenuItem});
+            this.levelToolStripMenuItem,
+            this.boardToolStripMenuItem});
             this.Upper_Menu.Location = new System.Drawing.Point(0, 0);
             this.Upper_Menu.Name = "Upper_Menu";
             this.Upper_Menu.Size = new System.Drawing.Size(789, 24);
@@ -85,12 +90,36 @@
             this.superHard2030SecondsToolStripMenuItem.Text = "Super Hard - 15-30 seconds";
             this.superHard2030SecondsToolStripMenuItem.Click += new System.EventHandler(this.SuperHard2030SecondsToolStripMenuItem_Click);
             // 
+            // boardToolStripMenuItem
+            // 
+            this.boardToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.saveToolStripMenuItem,
+            this.resetToolStripMenuItem});
+            this.boardToolStripMenuItem.Name = "boardToolStripMenuItem";
+            this.boardToolStripMenuItem.Size = new System.Drawing.Size(50, 20);
+            this.boardToolStripMenuItem.Text = "Board";
+            // 
+            // saveToolStripMenuItem
+            // 
+            this.saveToolStripMenuItem.Name = "saveToolStripMenuItem";
+            this.saveToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.saveToolStripMenuItem.Text = "Save";
+            this.saveToolStripMenuItem.Click += new System.EventHandler(this.SaveToolStripMenuItem_Click);
+            // 
+            // resetToolStripMenuItem
+            // 
+            this.resetToolStripMenuItem.Name = "resetToolStripMenuItem";
+            this.resetToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.resetToolStripMenuItem.Text = "Reset";
+            this.resetToolStripMenuItem.Click += new System.EventHandler(this.ResetToolStripMenuItem_Click);
+            // 
             // Damka
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(789, 791);
             this.Controls.Add(this.Upper_Menu);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MainMenuStrip = this.Upper_Menu;
             this.Name = "Damka";
             this.Text = "Checkers";
@@ -109,6 +138,9 @@
         private System.Windows.Forms.ToolStripMenuItem medium36SecondsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem hard710SecondsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem superHard2030SecondsToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem boardToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem saveToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem resetToolStripMenuItem;
     }
 }
 
