@@ -36,8 +36,10 @@
             this.hard710SecondsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.superHard2030SecondsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.boardToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.saveToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.resetToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.evaluateToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.saveToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.loadToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.Upper_Menu.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -93,11 +95,27 @@
             // boardToolStripMenuItem
             // 
             this.boardToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.resetToolStripMenuItem,
+            this.evaluateToolStripMenuItem,
             this.saveToolStripMenuItem,
-            this.resetToolStripMenuItem});
+            this.loadToolStripMenuItem});
             this.boardToolStripMenuItem.Name = "boardToolStripMenuItem";
             this.boardToolStripMenuItem.Size = new System.Drawing.Size(50, 20);
             this.boardToolStripMenuItem.Text = "Board";
+            // 
+            // resetToolStripMenuItem
+            // 
+            this.resetToolStripMenuItem.Name = "resetToolStripMenuItem";
+            this.resetToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.resetToolStripMenuItem.Text = "Reset";
+            this.resetToolStripMenuItem.Click += new System.EventHandler(this.ResetToolStripMenuItem_Click);
+            // 
+            // evaluateToolStripMenuItem
+            // 
+            this.evaluateToolStripMenuItem.Name = "evaluateToolStripMenuItem";
+            this.evaluateToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.evaluateToolStripMenuItem.Text = "Evaluate";
+            this.evaluateToolStripMenuItem.Click += new System.EventHandler(this.EvaluateToolStripMenuItem_Click);
             // 
             // saveToolStripMenuItem
             // 
@@ -106,12 +124,12 @@
             this.saveToolStripMenuItem.Text = "Save";
             this.saveToolStripMenuItem.Click += new System.EventHandler(this.SaveToolStripMenuItem_Click);
             // 
-            // resetToolStripMenuItem
+            // loadToolStripMenuItem
             // 
-            this.resetToolStripMenuItem.Name = "resetToolStripMenuItem";
-            this.resetToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
-            this.resetToolStripMenuItem.Text = "Reset";
-            this.resetToolStripMenuItem.Click += new System.EventHandler(this.ResetToolStripMenuItem_Click);
+            this.loadToolStripMenuItem.Name = "loadToolStripMenuItem";
+            this.loadToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.loadToolStripMenuItem.Text = "Load";
+            this.loadToolStripMenuItem.MouseEnter += new System.EventHandler(this.LoadToolStripMenuItem_MouseEnter);
             // 
             // Damka
             // 
@@ -141,6 +159,8 @@
         private System.Windows.Forms.ToolStripMenuItem boardToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem saveToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem resetToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem evaluateToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem loadToolStripMenuItem;
     }
 }
 

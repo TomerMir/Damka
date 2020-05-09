@@ -10,7 +10,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using Damka.Evaluate;
 
 namespace Damka
 {
@@ -143,7 +142,7 @@ namespace Damka
         {
             if (depth == 0 || board.WhoWins() != Winner.NoOne)
             {
-                return board.Evaluate();
+                return board.Evaluate(isRed);
             }
 
             if (isRed)
@@ -221,24 +220,48 @@ namespace Damka
             }
         }
 
+        private int GetEvaluation(int depth, bool isRed)
+        {
+            DamkaBoard[] moves = this.board.GetDamkaBoard().GetAllMoves(isRed);
+            this.movesWithEvaluations = new List<Tuple<DamkaBoard, int>>(moves.Length);
+            DamkaBoard[] shuffledMoves = moves.OrderBy(a => Guid.NewGuid()).ToArray();
+            foreach (DamkaBoard move in shuffledMoves)
+            {
+                GetEvalNewThread(move, depth, !isRed);
+            }
+            while (true)
+            {
+                if (movesWithEvaluations.Count == moves.Length)
+                {
+                    if (movesWithEvaluations.Count == 0)
+                    {
+                        if (isRed)
+                        {
+                            return int.MaxValue - 1;
+                        }
+                        else
+                        {
+                            return int.MinValue + 1;
+                        }
+                    }
+                    if (isRed)
+                    {
+                        movesWithEvaluations.Sort((x, y) => x.Item2.CompareTo(y.Item2));
+                    }
+                    else
+                    {
+                        movesWithEvaluations.Sort((x, y) => y.Item2.CompareTo(x.Item2));
+                    }
+                    return movesWithEvaluations.First().Item2;
+                }
+            }
+        }
+
         private void GetEvalNewThread(DamkaBoard move, int depth, bool isRed)
         {
             Thread Evaluate = new Thread(() =>
             {
-                int moveEval = 0;
-                Winner winner = move.WhoWins();
-                if (winner == Winner.Black)
-                {
-                    moveEval = int.MaxValue - 1;
-                }
-                else if (winner == Winner.Red)
-                {
-                    moveEval = int.MinValue + 1;
-                }
-                else
-                {
-                    moveEval = MinMax(move, depth, isRed);
-                }
+                int moveEval = MinMax(move, depth, isRed);
                 this.movesWithEvaluations.Add(new Tuple<DamkaBoard, int>(move, moveEval));
             });
             Evaluate.Start();
@@ -305,17 +328,90 @@ namespace Damka
                 MessageBox.Show("Can't save now, wait for your opponent to end his turn...");
                 return;
             }
-            string hash = this.board.GetDamkaBoard().Hash();
-            string filePath = this.directoryPath + "\\" + hash;
+            string boardName = boardName = ShowDialog("Enter board name", "Board Name");
+
+            if (boardName.Equals(""))
+            {
+                return;
+            }
+            boardName.Replace("/", "_");
+
+            string filePath = this.directoryPath + "\\" + boardName;
             if (File.Exists(filePath))
             {
-                MessageBox.Show("You have already saved this board");
+                MessageBox.Show("You have already saved a board with this name");
                 return;
             }
             FileStream myFile = File.Create(filePath);
             myFile.Close();
-            File.WriteAllBytes(filePath, this.board.GetDamkaBoard().ConvertTo1DArray());
+            List<byte> bytesToWrite = new List<byte>();
+            bytesToWrite.AddRange(this.board.GetDamkaBoard().ConvertTo1DArray());
+            bytesToWrite.Add((byte)this.board.GetDamkaBoard().GetNumberOfMovesWithoutSkips());
+            File.WriteAllBytes(filePath, bytesToWrite.ToArray());
             File.SetAttributes(filePath, FileAttributes.ReadOnly);
+        }
+
+        private void EvaluateToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (this.isThinking)
+            {
+                MessageBox.Show("Can't evaluate now, wait for your opponent to end his turn...");
+                return;
+            }
+            Thread GetEval = new Thread(() =>
+            {
+                MessageBox.Show((GetEvaluation(6, true) * -1).ToString(), "Evaluation");
+            });
+            GetEval.Start();
+        }
+
+        public static string ShowDialog(string text, string caption)
+        {
+            Form prompt = new Form()
+            {
+                Width = 300,
+                Height = 150,
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                Text = caption,
+                StartPosition = FormStartPosition.CenterScreen
+            };
+            Label textLabel = new Label() { Left = 100, Top = 20, Text = text };
+            TextBox textBox = new TextBox() { Left = 50, Top = 50, Width = 200 };
+            Button confirmation = new Button() { Text = "Ok", Left = 95, Width = 100, Top = 75, DialogResult = DialogResult.OK };
+            confirmation.Click += (sender, e) => { prompt.Close(); };
+            prompt.Controls.Add(textBox);
+            prompt.Controls.Add(confirmation);
+            prompt.Controls.Add(textLabel);
+            prompt.AcceptButton = confirmation;
+
+            return prompt.ShowDialog() == DialogResult.OK ? textBox.Text : "";
+        }
+
+        private void AddBoardsToToolStrip()
+        {
+            string[] files = Directory.GetFiles(this.directoryPath);
+            foreach (string file in files)
+            {
+                ToolStripMenuItem item = new ToolStripMenuItem();
+                item.Text = Path.GetFileName(file);
+                item.Click += (s, a) =>
+                {
+                    if (this.isThinking)
+                    {
+                        MessageBox.Show("Can't load now, wait for your opponent to end his turn...");
+                        return;
+                    }
+                    DamkaBoard tmpBoard = new DamkaBoard(File.ReadAllBytes(file));
+                    this.board.AppendFromDamkaBoard(tmpBoard);
+                };
+                loadToolStripMenuItem.DropDownItems.Add(item);
+            }
+        }
+
+        private void LoadToolStripMenuItem_MouseEnter(object sender, EventArgs e)
+        {
+            ((ToolStripMenuItem)sender).DropDownItems.Clear();
+            AddBoardsToToolStrip();
         }
     }
 }

@@ -59,8 +59,6 @@
     <Compile Include="Damka.Designer.cs">
       <DependentUpon>Damka.cs</DependentUpon>
     </Compile>
-    <Compile Include="Evaluate\Matrix.cs" />
-    <Compile Include="Evaluate\NeuralNetwork.cs" />
     <Compile Include="Evaluation.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

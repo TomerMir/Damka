@@ -308,6 +308,16 @@ namespace Damka
         private byte[,] board = new byte[8, 4];
         private int numberOfMovesWithoutSkips = 0;
 
+        public DamkaBoard()
+        {
+
+        }
+        public DamkaBoard(byte[] arr)
+        {
+            this.board = DamkaBoard.ConvertTo2DArray(arr.Take(arr.Length-1).ToArray());
+            this.numberOfMovesWithoutSkips = arr[arr.Length - 1];
+        }
+
         public void SetValueByIndex(int i, int j, int value)
         {
             this.board[i, j/2] = Utilities.SetByteValue(this.board[i, j/2], value, j % 2 == 0);
@@ -324,36 +334,6 @@ namespace Damka
         public int GetNumberOfMovesWithoutSkips()
         {
             return this.numberOfMovesWithoutSkips;
-        }
-
-        public double[] GetInputForNeuralNetwork()
-        {
-            double[] input = new double[32];
-            int counter = 0;
-            for (int i = 0; i < 8; i++)
-            {
-                for (int j = 0; j < 8; j++)
-                {
-                    if (j % 2 == 0)
-                    {
-                        if (i % 2 != 0)
-                        {
-                            input[counter] = (int)GetPieceByIndex(j, i);
-                            counter++;
-                        }
-                    }
-                    else
-                    {
-                        if (i % 2 == 0)
-                        {
-                            input[counter] = (int)GetPieceByIndex(j, i);
-                            counter++;
-                        }
-                    }
-                }
-            }
-
-            return input;
         }
 
         public Winner WhoWins()
@@ -376,13 +356,13 @@ namespace Damka
                 return Winner.Red;
             }
 
-            if (this.numberOfMovesWithoutSkips == 30)
+            if (this.numberOfMovesWithoutSkips >= 40)
             {
                 return Winner.Draw;
             }
             return Winner.NoOne;
         } 
-
+        
         public int[] GetPices()
         {
             int[] pices = new int[4] {0,0,0,0};
@@ -410,22 +390,7 @@ namespace Damka
             return pices;
         }
 
-        private PieceForEvaluation[] GetPiecesForEvaluation()
-        {
-            int counter = 0;
-            PieceForEvaluation[] pieces = new PieceForEvaluation[64];
-            for (int i = 0; i < 8; i++)
-            {
-                for (int j = 0; j < 8; j++)
-                {
-                    pieces[counter] = new PieceForEvaluation(i, j, GetPieceByIndex(i, j));
-                    counter++;
-                }
-            }
-            return pieces;
-        }
-
-        public int Evaluate()
+        public int Evaluate(bool isRed)
         {
             switch (WhoWins())
             {
@@ -436,7 +401,7 @@ namespace Damka
                 case Winner.Draw:
                     return 0;
             }
-            return PieceForEvaluation.GetEval(GetPiecesForEvaluation());
+            return Evaluation.Get(this, isRed);
         }
 
         public DamkaBoard Clone()
@@ -827,6 +792,7 @@ namespace Damka
 
             return moves.ToArray();
         }
+
         public DamkaBoard[] GetAvailableNormalMoves(int y, int x)
         {
             Piece piece = GetPieceByIndex(y, x);
