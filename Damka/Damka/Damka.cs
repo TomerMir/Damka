@@ -32,6 +32,7 @@ namespace Damka
             this.MaximizeBox = false;
             this.medium36SecondsToolStripMenuItem.Checked = true;
             this.depth = 6;
+            //this.board.AppendFromDamkaBoard(GetBestMove(9, false));
 
             //file
             string directoryPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "\\Damka";
@@ -278,7 +279,7 @@ namespace Damka
         {
             UncheckAll();
             ((ToolStripMenuItem)sender).Checked = true;
-            this.depth = 2;
+            this.depth = 1;
         }
 
         private void Medium36SecondsToolStripMenuItem_Click(object sender, EventArgs e)
@@ -401,6 +402,7 @@ namespace Damka
                         MessageBox.Show("Can't load now, wait for your opponent to end his turn...");
                         return;
                     }
+                    this.board.ClearMoves();
                     DamkaBoard tmpBoard = new DamkaBoard(File.ReadAllBytes(file));
                     this.board.AppendFromDamkaBoard(tmpBoard);
                 };
