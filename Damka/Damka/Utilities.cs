@@ -8,31 +8,15 @@ namespace Damka
 {
     class Utilities
     {
-        public static byte TwoIntToByte(int first, int second)
-        {
-            byte firstByte = (byte)(first << 4);
-            byte secondByte = ((byte)second);
-            byte lastByte = (byte)(firstByte | secondByte);
-            return lastByte;
-        }
-
-        public static int[] ByteToTwoInts(byte b)
-        {
-            int first = (b & 0xF0) >> 4;
-            int second = b & 0x0F;
-            return new int[2] { first, second };
-        }
-
         public static byte SetByteValue(byte b, int value, bool firstHalf)
         {
             if (firstHalf)
             {
-                b = (byte)(value << 4);
+                b = (byte)((value << 4) | (b & 0xf));
             }
             else
             {
-                b = (byte)(b & 0xF0);
-                b = (byte)(b | value);
+                b = (byte)((b & 0xf0) | value);
             }
             return b;
         }

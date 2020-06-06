@@ -305,7 +305,7 @@ namespace Damka
 
     class DamkaBoard
     {
-        private byte[,] board = new byte[8, 4];
+        private byte[,] board = new byte[8, 2];
         private int numberOfMovesWithoutSkips = 0;
 
         public DamkaBoard()
@@ -314,21 +314,35 @@ namespace Damka
         }
         public DamkaBoard(byte[] arr)
         {
-            this.board = DamkaBoard.ConvertTo2DArray(arr.Take(arr.Length-1).ToArray());
+            this.board = DamkaBoard.ConvertTo2DArray(arr.Take(arr.Length - 1).ToArray());
             this.numberOfMovesWithoutSkips = arr[arr.Length - 1];
         }
 
         public void SetValueByIndex(int i, int j, int value)
         {
-            this.board[i, j/2] = Utilities.SetByteValue(this.board[i, j/2], value, j % 2 == 0);
+            if (IsNonePlace(i, j)) return;
+            this.board[i, j / 4] = Utilities.SetByteValue(this.board[i, j / 4], value, IsFirstHalf(i, j));
+        }
+
+        private static bool IsFirstHalf(int y, int x)
+        {
+            return y % 2 == 0 ? x == 1 || x == 5 : x == 0 || x == 4;
+        }
+        private static bool IsNonePlace(int y, int x)
+        {
+            return y % 2 == 0 ? x % 2 == 0 : x % 2 != 0;
         }
         public Piece GetPieceByIndex(int i, int j)
         {
-            return (Piece)Utilities.GetByteValue(this.board[i, j/2], j % 2 == 0);
+            if (IsNonePlace(i, j))
+            {
+                return Piece.Nothing;
+            }
+            return (Piece)Utilities.GetByteValue(this.board[i, j/4], IsFirstHalf(i, j));
         }
         public Piece GetPieceByIndex(int i, int j, DamkaBoard board)
         {
-            return (Piece)Utilities.GetByteValue(board.board[i, j / 2], j % 2 == 0);
+            return board.GetPieceByIndex(i, j);
         }
 
         public int GetNumberOfMovesWithoutSkips()
@@ -409,7 +423,7 @@ namespace Damka
             DamkaBoard newBoard = new DamkaBoard();
             for (int i = 0; i < 8; i++)
             {
-                for (int j = 0; j < 4; j++)
+                for (int j = 0; j < 2; j++)
                 {
                     newBoard.board[i, j] = this.board[i, j];
                 }
@@ -501,7 +515,6 @@ namespace Damka
         private int[][] GetAllIndexesFromColor(bool isRed)
         {
             List<int[]> indexes = new List<int[]>();
-            Piece[,] picesArr = GetBoard();
             for (int i = 0; i < 8; i++)
             {
                 for (int j = 0; j < 8; j++)
@@ -536,17 +549,17 @@ namespace Damka
             Piece piece = GetPieceByIndex(fromY, fromX);
             if (piece == Piece.RedPiece && toY == 0)
             {
-                this.board[toY, toX / 2] = Utilities.SetByteValue(this.board[toY, toX / 2], (int)Piece.RedQueen, toX % 2 == 0);
+                this.board[toY, toX / 4] = Utilities.SetByteValue(this.board[toY, toX / 4], (int)Piece.RedQueen, IsFirstHalf(toY, toX));
             }
             else if (piece == Piece.BlackPiece && toY == 7)
             {
-                this.board[toY, toX / 2] = Utilities.SetByteValue(this.board[toY, toX / 2], (int)Piece.BlackQueen, toX % 2 == 0);
+                this.board[toY, toX / 4] = Utilities.SetByteValue(this.board[toY, toX / 4], (int)Piece.BlackQueen, IsFirstHalf(toY, toX));
             }
             else
             {
-                this.board[toY, toX / 2] = Utilities.SetByteValue(this.board[toY, toX / 2], Utilities.GetByteValue(this.board[fromY, fromX / 2], fromX % 2 == 0), toX % 2 == 0);
+                this.board[toY, toX / 4] = Utilities.SetByteValue(this.board[toY, toX / 4], Utilities.GetByteValue(this.board[fromY, fromX / 4], IsFirstHalf(fromY, fromX)), IsFirstHalf(toY, toX));
             }
-            this.board[fromY, fromX / 2] = Utilities.SetByteValue(this.board[fromY, fromX / 2], (int)Piece.Nothing, fromX % 2 == 0);
+            this.board[fromY, fromX / 4] = Utilities.SetByteValue(this.board[fromY, fromX / 4], (int)Piece.Nothing, IsFirstHalf(fromY, fromX));
             
         }
 
@@ -555,7 +568,7 @@ namespace Damka
             int avrY = (fromY + toY) / 2;
             int avrX = (fromX + toX) / 2;
             Move(fromY, fromX, toY, toX);
-            this.board[avrY, avrX/2] = Utilities.SetByteValue(this.board[avrY, avrX / 2], (int)Piece.Nothing, avrX % 2 == 0);
+            this.board[avrY, avrX/4] = Utilities.SetByteValue(this.board[avrY, avrX / 4], (int)Piece.Nothing, IsFirstHalf(avrY, avrX));
             this.numberOfMovesWithoutSkips = 0;
         }
 
@@ -914,22 +927,24 @@ namespace Damka
 
         public byte[] ConvertTo1DArray()
         {
-            byte[] oneDBoard = new byte[this.board.Length];
+            byte[] oneDBoard = new byte[this.board.Length + 1];
             Buffer.BlockCopy(this.board, 0, oneDBoard, 0, this.board.Length);
+            oneDBoard[this.board.Length] = (byte)this.numberOfMovesWithoutSkips;
             return oneDBoard;
         }
 
         public static byte[,] ConvertTo2DArray(byte[] array)
         {
-            byte[,] output = new byte[8, 4];
+            byte[,] output = new byte[8, 2];
             for (int i = 0; i < 8; i++)
             {
-                for (int j = 0; j < 4; j++)
+                for (int j = 0; j < 2; j++)
                 {
-                    output[i, j] = array[i * 4 + j];
+                    output[i, j] = array[i * 2 + j];
                 }
             }
             return output;
+            //TODO: check
         }
     }
     

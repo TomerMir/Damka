@@ -19,6 +19,7 @@ namespace Damka
         List<Tuple<DamkaBoard, int>> movesWithEvaluations;
         bool isThinking = false;
         private Thread doTurn;
+        private Thread evaluationThread;
         private int depth;
         private string directoryPath;
         public Damka()
@@ -32,7 +33,6 @@ namespace Damka
             this.MaximizeBox = false;
             this.medium36SecondsToolStripMenuItem.Checked = true;
             this.depth = 6;
-            //this.board.AppendFromDamkaBoard(GetBestMove(9, false));
 
             //file
             string directoryPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "\\Damka";
@@ -42,6 +42,7 @@ namespace Damka
                 directory.Attributes = FileAttributes.Directory | FileAttributes.Hidden;
             }
             this.directoryPath = directoryPath;
+            SetEvaluation();
         }
 
         private void BotGames(int firstDepthm, int secondDepth)
@@ -99,6 +100,11 @@ namespace Damka
                 Cell clickedCell = sender as Cell;
                 if (clickedCell.GetBoard() != null)
                 {
+                    if (this.evaluationThread.IsAlive)
+                    {
+                        this.evaluationThread.Abort();
+                    }
+                    this.evaluation.Text = "";
                     DamkaBoard tmpBoard = clickedCell.GetBoard();
                     this.board.ClearMoves();
                     this.board.AppendFromDamkaBoard(tmpBoard);
@@ -129,6 +135,7 @@ namespace Damka
                             this.board.Reset();
                             break;
                     }
+                    SetEvaluation();
                     this.isThinking = false;
                     return;
                 }
@@ -221,7 +228,22 @@ namespace Damka
             }
         }
 
-        private int GetEvaluation(int depth, bool isRed)
+        private void SetEvaluation()
+        {
+            evaluationThread = new Thread(() =>
+            {
+                int depth = 1;
+                while (depth <= 20)
+                {
+                    double eval = (double)(GetEvaluation(depth, true)) / -100;
+                    this.evaluation.Text = eval.ToString() + " {" + depth + "}";
+                    depth++;
+                }
+            });
+            evaluationThread.Start();
+        }
+
+        private int GetEvaluationMultiThread(int depth, bool isRed)
         {
             DamkaBoard[] moves = this.board.GetDamkaBoard().GetAllMoves(isRed);
             this.movesWithEvaluations = new List<Tuple<DamkaBoard, int>>(moves.Length);
@@ -258,6 +280,39 @@ namespace Damka
             }
         }
 
+        private int GetEvaluation(int depth, bool isRed)
+        {
+            DamkaBoard[] moves = this.board.GetDamkaBoard().GetAllMoves(isRed);
+            this.movesWithEvaluations = new List<Tuple<DamkaBoard, int>>(moves.Length);
+            DamkaBoard[] shuffledMoves = moves.OrderBy(a => Guid.NewGuid()).ToArray();
+            int bestEval;
+            if (isRed)
+            {
+                bestEval = int.MaxValue;
+                foreach (DamkaBoard move in shuffledMoves)
+                {
+                    int moveEval = MinMax(move, depth, !isRed);
+                    if (moveEval < bestEval)
+                    {
+                        bestEval = moveEval;
+                    }
+                }
+            }
+            else
+            {
+                bestEval = int.MinValue;
+                foreach (DamkaBoard move in shuffledMoves)
+                {
+                    int moveEval = MinMax(move, depth, !isRed);
+                    if (moveEval > bestEval)
+                    {
+                        bestEval = moveEval;
+                    }
+                }
+            }
+            return bestEval;
+        }
+
         private void GetEvalNewThread(DamkaBoard move, int depth, bool isRed)
         {
             Thread Evaluate = new Thread(() =>
@@ -279,7 +334,7 @@ namespace Damka
         {
             UncheckAll();
             ((ToolStripMenuItem)sender).Checked = true;
-            this.depth = 1;
+            this.depth = 2;
         }
 
         private void Medium36SecondsToolStripMenuItem_Click(object sender, EventArgs e)
@@ -305,20 +360,28 @@ namespace Damka
 
         private void ResetTurnThread()
         {
-            if (this.doTurn == null)
+            if (this.doTurn != null)
             {
-                return;
+                if (this.doTurn.IsAlive)
+                {
+                    this.doTurn.Abort();
+                }
+                this.isThinking = false;
             }
-            if (this.doTurn.IsAlive)
+            if (this.evaluationThread != null)
             {
-                this.doTurn.Abort();
+                if (this.evaluationThread.IsAlive)
+                {
+                    this.evaluationThread.Abort();
+                }
             }
-            this.isThinking = false;
+            
         }
 
         private void ResetToolStripMenuItem_Click(object sender, EventArgs e)
         {
             ResetTurnThread();
+            SetEvaluation();
             this.board.Reset();
         }
 
@@ -345,10 +408,7 @@ namespace Damka
             }
             FileStream myFile = File.Create(filePath);
             myFile.Close();
-            List<byte> bytesToWrite = new List<byte>();
-            bytesToWrite.AddRange(this.board.GetDamkaBoard().ConvertTo1DArray());
-            bytesToWrite.Add((byte)this.board.GetDamkaBoard().GetNumberOfMovesWithoutSkips());
-            File.WriteAllBytes(filePath, bytesToWrite.ToArray());
+            File.WriteAllBytes(filePath, this.board.GetDamkaBoard().ConvertTo1DArray());
             File.SetAttributes(filePath, FileAttributes.ReadOnly);
         }
 
@@ -397,11 +457,8 @@ namespace Damka
                 item.Text = Path.GetFileName(file);
                 item.Click += (s, a) =>
                 {
-                    if (this.isThinking)
-                    {
-                        MessageBox.Show("Can't load now, wait for your opponent to end his turn...");
-                        return;
-                    }
+                    ResetTurnThread();
+                    SetEvaluation();
                     this.board.ClearMoves();
                     DamkaBoard tmpBoard = new DamkaBoard(File.ReadAllBytes(file));
                     this.board.AppendFromDamkaBoard(tmpBoard);
@@ -409,11 +466,16 @@ namespace Damka
                 loadToolStripMenuItem.DropDownItems.Add(item);
             }
         }
-
+        
         private void LoadToolStripMenuItem_MouseEnter(object sender, EventArgs e)
         {
             ((ToolStripMenuItem)sender).DropDownItems.Clear();
             AddBoardsToToolStrip();
+        }
+
+        private void Damka_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            Environment.Exit(Environment.ExitCode);
         }
     }
 }
