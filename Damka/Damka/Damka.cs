@@ -148,7 +148,7 @@ namespace Damka
 
         private int MinMax(DamkaBoard board, int depth, bool isRed, int alpha = int.MinValue, int beta = int.MaxValue)
         {
-            if (depth == 0 || board.WhoWins() != Winner.NoOne)
+            if (depth <= 0 || board.WhoWins() != Winner.NoOne || !board.IsSkipRequired(isRed))
             {
                 return board.Evaluate(isRed);
             }

@@ -452,9 +452,8 @@ namespace Damka
             return false;
         }
 
-        private bool IsSkipRequired(bool isRed)
+        public bool IsSkipRequired(bool isRed)
         {
-            Piece piece = isRed ? Piece.RedPiece : Piece.BlackPiece;
             for (int i = 0; i < 8; i++)
             {
                 for (int j = 0; j < 8; j++)
@@ -462,7 +461,7 @@ namespace Damka
                     Piece tmpPiece = GetPieceByIndex(j, i);
                     if (isRed ? tmpPiece == Piece.RedPiece || tmpPiece == Piece.RedQueen : tmpPiece == Piece.BlackPiece || tmpPiece == Piece.BlackQueen)
                     {
-                        if (GetAvailableSkipMoves(j, i).Length > 0)
+                        if (CanSkip(j, i))
                         {
                             return true;
                         }
@@ -560,7 +559,6 @@ namespace Damka
                 this.board[toY, toX / 4] = Utilities.SetByteValue(this.board[toY, toX / 4], Utilities.GetByteValue(this.board[fromY, fromX / 4], IsFirstHalf(fromY, fromX)), IsFirstHalf(toY, toX));
             }
             this.board[fromY, fromX / 4] = Utilities.SetByteValue(this.board[fromY, fromX / 4], (int)Piece.Nothing, IsFirstHalf(fromY, fromX));
-            
         }
 
         public void Skip(int fromY, int fromX, int toY, int toX)
@@ -605,7 +603,186 @@ namespace Damka
             }
             return pieceBoard;
         }
-            
+
+        public bool CanSkip(int y, int x)
+        {
+            Piece piece = GetPieceByIndex(y, x);
+
+            int uY;
+            int uuY;
+            int dY;
+            int ddY;
+            int lX;
+            int llX;
+            int rX;
+            int rrX;
+
+            if (piece == Piece.BlackPiece)
+            {
+                dY = y + 1;
+                ddY = dY + 1;
+                rX = x + 1;
+                rrX = rX + 1;
+                lX = x - 1;
+                llX = lX - 1;
+
+                if (dY < 8)
+                {
+                    if (lX >= 0)
+                    {
+                        Piece nextPiece = GetPieceByIndex(dY, lX);
+                        if (nextPiece == Piece.RedPiece || nextPiece == Piece.RedQueen)
+                        {
+                            if (ddY < 8 && llX >= 0)
+                            {
+                                if (GetPieceByIndex(ddY, llX) == Piece.Nothing)
+                                {
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+
+                    if (rX < 8)
+                    {
+                        Piece nextPiece = GetPieceByIndex(dY, rX);
+                        if (nextPiece == Piece.RedPiece || nextPiece == Piece.RedQueen)
+                        {
+                            if (ddY < 8 && rrX < 8)
+                            {
+                                if (GetPieceByIndex(ddY, rrX) == Piece.Nothing)
+                                {
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            else if (piece == Piece.RedPiece)
+            {
+                uY = y - 1;
+                uuY = uY - 1;
+                rX = x + 1;
+                rrX = rX + 1;
+                lX = x - 1;
+                llX = lX - 1;
+
+                if (uY >= 0)
+                {
+                    if (lX >= 0)
+                    {
+                        Piece nextPiece = GetPieceByIndex(uY, lX);
+                        if (nextPiece == Piece.BlackPiece || nextPiece == Piece.BlackQueen)
+                        {
+                            if (uuY >= 0 && llX >= 0)
+                            {
+                                if (GetPieceByIndex(uuY, llX) == Piece.Nothing)
+                                {
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+
+                    if (rX < 8)
+                    {
+                        Piece nextPiece = GetPieceByIndex(uY, rX);
+                        if (nextPiece == Piece.BlackPiece || nextPiece == Piece.BlackQueen)
+                        {
+                            if (uuY >= 0 && rrX < 8)
+                            {
+                                if (GetPieceByIndex(uuY, rrX) == Piece.Nothing)
+                                {
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            else if (piece == Piece.BlackQueen || piece == Piece.RedQueen)
+            {
+                uY = y - 1;
+                uuY = uY - 1;
+                dY = y + 1;
+                ddY = dY + 1;
+                rX = x + 1;
+                rrX = rX + 1;
+                lX = x - 1;
+                llX = lX - 1;
+
+                if (uY >= 0)
+                {
+                    if (lX >= 0)
+                    {
+                        Piece nextPiece = GetPieceByIndex(uY, lX);
+                        if (piece == Piece.BlackQueen ? nextPiece == Piece.RedPiece || nextPiece == Piece.RedQueen : nextPiece == Piece.BlackPiece || nextPiece == Piece.BlackQueen)
+                        {
+                            if (uuY >= 0 && llX >= 0)
+                            {
+                                if (GetPieceByIndex(uuY, llX) == Piece.Nothing)
+                                {
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+
+                    if (rX < 8)
+                    {
+                        Piece nextPiece = GetPieceByIndex(uY, rX);
+                        if (piece == Piece.BlackQueen ? nextPiece == Piece.RedPiece || nextPiece == Piece.RedQueen : nextPiece == Piece.BlackPiece || nextPiece == Piece.BlackQueen)
+                        {
+                            if (uuY >= 0 && rrX < 8)
+                            {
+                                if (GetPieceByIndex(uuY, rrX) == Piece.Nothing)
+                                {
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+                if (dY < 8)
+                {
+                    if (lX >= 0)
+                    {
+                        Piece nextPiece = GetPieceByIndex(dY, lX);
+                        if (piece == Piece.BlackQueen ? nextPiece == Piece.RedPiece || nextPiece == Piece.RedQueen : nextPiece == Piece.BlackPiece || nextPiece == Piece.BlackQueen)
+                        {
+                            if (ddY < 8 && llX >= 0)
+                            {
+                                if (GetPieceByIndex(ddY, llX) == Piece.Nothing)
+                                {
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+
+                    if (rX < 8)
+                    {
+                        Piece nextPiece = GetPieceByIndex(dY, rX);
+                        if (piece == Piece.BlackQueen ? nextPiece == Piece.RedPiece || nextPiece == Piece.RedQueen : nextPiece == Piece.BlackPiece || nextPiece == Piece.BlackQueen)
+                        {
+                            if (ddY < 8 && rrX < 8)
+                            {
+                                if (GetPieceByIndex(ddY, rrX) == Piece.Nothing)
+                                {
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
         public DamkaBoard[] GetAvailableSkipMoves(int y, int x, DamkaBoard board = null, List<DamkaBoard> moves = null)
         {
             if (moves == null)
