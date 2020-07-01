@@ -22,6 +22,7 @@ namespace Damka
         private Thread evaluationThread;
         private int depth;
         private string directoryPath;
+        private string boardsDirectoryPath;
         public Damka()
         {
             InitializeComponent();
@@ -33,14 +34,20 @@ namespace Damka
             this.MaximizeBox = false;
             this.medium36SecondsToolStripMenuItem.Checked = true;
             this.depth = 6;
-
+            this.board.AppendFromDamkaBoard(GetBestMove(9, false));
             //file
             string directoryPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "\\Damka";
+            string boardsDirectoryPath = directoryPath + "\\Boards";
             if (!Directory.Exists(directoryPath))
             {
                 DirectoryInfo directory = Directory.CreateDirectory(directoryPath);
                 directory.Attributes = FileAttributes.Directory | FileAttributes.Hidden;
             }
+            if (!Directory.Exists(boardsDirectoryPath))
+            {
+                Directory.CreateDirectory(boardsDirectoryPath);
+            }
+            this.boardsDirectoryPath = boardsDirectoryPath;
             this.directoryPath = directoryPath;
             SetEvaluation();
         }
@@ -145,20 +152,31 @@ namespace Damka
             });
             this.doTurn.Start();
         }
-
-        private int MinMax(DamkaBoard board, int depth, bool isRed, int alpha = int.MinValue, int beta = int.MaxValue)
+        private int MinMax(DamkaBoard board, int depth, bool isRed, int alpha = int.MinValue, int beta = int.MaxValue, bool isFirstMove = true, bool doNull = true)
         {
-            if (depth <= 0 || board.WhoWins() != Winner.NoOne || !board.IsSkipRequired(isRed))
+            if (depth <= 0 || board.WhoWins() != Winner.NoOne)
             {
-                return board.Evaluate(isRed);
+                if (!board.IsSkipRequired(isRed))
+                {
+                    return board.Evaluate(isRed);
+                }
             }
+
+            //if (depth >= 4 && !isFirstMove && doNull)
+            //{
+            //    int eval = MinMax(board.MakeNullMove(), depth - 4, !isRed,  beta, beta - 1, isFirstMove, false);
+            //    if (eval >= beta)
+            //    {
+            //        return beta;
+            //    }
+            //}
 
             if (isRed)
             {
                 int minEval = int.MaxValue;
                 foreach (DamkaBoard tmpBoard in board.GetAllMoves(isRed))
                 {
-                    int eval = MinMax(tmpBoard, depth - 1, !isRed, alpha, beta);
+                    int eval = MinMax(tmpBoard, depth - 1, !isRed, alpha, beta, false, doNull);
                     minEval = Math.Min(minEval, eval);
                     beta = Math.Min(beta, eval);
                     if (beta <= alpha)
@@ -174,7 +192,7 @@ namespace Damka
                 int maxEval = int.MinValue;
                 foreach (DamkaBoard tmpBoard in board.GetAllMoves(isRed))
                 {
-                    int eval = MinMax(tmpBoard, depth - 1, !isRed, alpha, beta);
+                    int eval = MinMax(tmpBoard, depth - 1, !isRed, alpha, beta, false, doNull);
                     maxEval = Math.Max(maxEval, eval);
                     alpha = Math.Max(alpha, eval);
                     if (beta <= alpha)
@@ -232,7 +250,7 @@ namespace Damka
         {
             evaluationThread = new Thread(() =>
             {
-                int depth = 1;
+                int depth = 2;
                 while (depth <= 20)
                 {
                     double eval = (double)(GetEvaluation(depth, true)) / -100;
@@ -400,7 +418,7 @@ namespace Damka
             }
             boardName.Replace("/", "_");
 
-            string filePath = this.directoryPath + "\\" + boardName;
+            string filePath = this.boardsDirectoryPath + "\\" + boardName;
             if (File.Exists(filePath))
             {
                 MessageBox.Show("You have already saved a board with this name");
@@ -450,7 +468,7 @@ namespace Damka
 
         private void AddBoardsToToolStrip()
         {
-            string[] files = Directory.GetFiles(this.directoryPath);
+            string[] files = Directory.GetFiles(this.boardsDirectoryPath);
             foreach (string file in files)
             {
                 ToolStripMenuItem item = new ToolStripMenuItem();

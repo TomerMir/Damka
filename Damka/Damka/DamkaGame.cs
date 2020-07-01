@@ -471,6 +471,12 @@ namespace Damka
             return false;
         }
 
+        public DamkaBoard MakeNullMove()
+        {
+            DamkaBoard tmp = this.Clone();
+            return tmp;
+        }
+
         public DamkaBoard[] GetAllMovesWithIndex(int y, int x)
         {
             if (IsSkipRequired(y, x))
@@ -1091,14 +1097,13 @@ namespace Damka
             return moves.ToArray();
         }
 
-        public string Hash()
+        public byte[] Hash()
         {           
-            string hash;
+            byte[] hash;
             using (SHA1CryptoServiceProvider sha1 = new SHA1CryptoServiceProvider())
             {
-                hash = Convert.ToBase64String(sha1.ComputeHash(ConvertTo1DArray()));
+                hash = sha1.ComputeHash(ConvertTo1DArray());
             }
-            hash = hash.Replace("/", "_");
             return hash;
         }
 
