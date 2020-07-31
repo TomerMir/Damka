@@ -191,12 +191,17 @@ namespace Damka
         }
 
 
-        public void ShowMoves(Cell clickedCell)
+        public void ShowMoves(Cell clickedCell, bool isBlack)
         {
             int y = clickedCell.colume;
             int x = clickedCell.row;
             Piece currentPiece = this.damkaBoard.GetPieceByIndex(y, x);
-            if (currentPiece != Piece.RedPiece && currentPiece != Piece.RedQueen)
+            if (currentPiece != Piece.RedPiece && currentPiece != Piece.RedQueen && !isBlack)
+            {
+                return;
+            }
+
+            if (currentPiece != Piece.BlackPiece && currentPiece != Piece.BlackQueen && isBlack)
             {
                 return;
             }
@@ -1114,6 +1119,16 @@ namespace Damka
             oneDBoard[this.board.Length] = (byte)this.numberOfMovesWithoutSkips;
             return oneDBoard;
         }
+
+        public byte[] GetByteArray(bool turn)
+        {
+            byte[] arr = new byte[this.board.Length + 2];
+            Buffer.BlockCopy(this.board, 0, arr, 0, this.board.Length);
+            arr[this.board.Length] = (byte)this.numberOfMovesWithoutSkips;
+            arr[this.board.Length + 1] = Convert.ToByte(turn);
+            return arr;
+        }
+            
 
         public static byte[,] ConvertTo2DArray(byte[] array)
         {

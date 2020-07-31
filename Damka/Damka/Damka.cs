@@ -15,14 +15,17 @@ namespace Damka
 {
     public partial class Damka : Form
     {
-        Board board;
-        List<Tuple<DamkaBoard, int>> movesWithEvaluations;
-        bool isThinking = false;
+        private TranspositionTable tTable;
+        private Search search;
+        private Board board;
+        private bool isThinking = false;
         private Thread doTurn;
         private Thread evaluationThread;
         private int depth;
         private string directoryPath;
         private string boardsDirectoryPath;
+        private string transpositionTablePath;
+        private bool isBlack = false;
         public Damka()
         {
             InitializeComponent();
@@ -34,9 +37,9 @@ namespace Damka
             this.MaximizeBox = false;
             this.medium36SecondsToolStripMenuItem.Checked = true;
             this.depth = 6;
-            this.board.AppendFromDamkaBoard(GetBestMove(9, false));
             //file
             string directoryPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "\\Damka";
+            string transpositionTablePath = directoryPath + "\\TTable";
             string boardsDirectoryPath = directoryPath + "\\Boards";
             if (!Directory.Exists(directoryPath))
             {
@@ -47,8 +50,18 @@ namespace Damka
             {
                 Directory.CreateDirectory(boardsDirectoryPath);
             }
+            if (!File.Exists(transpositionTablePath))
+            {
+                var file = File.Create(transpositionTablePath);
+                file.Close();
+            }
+            this.transpositionTablePath = transpositionTablePath;
             this.boardsDirectoryPath = boardsDirectoryPath;
             this.directoryPath = directoryPath;
+
+            this.tTable = new TranspositionTable(transpositionTablePath);
+            this.search = new Search(tTable);
+            //this.board.AppendFromDamkaBoard(search.GetBestMove(12, false, board.GetDamkaBoard()));
             SetEvaluation();
         }
 
@@ -56,7 +69,7 @@ namespace Damka
         {
             while (true)
             {
-                ShowMove(GetBestMove(firstDepthm, true));
+                ShowMove(this.search.GetBestMove(firstDepthm, true, this.board.GetDamkaBoard()));
                 switch (this.board.GetDamkaBoard().WhoWins())
                 {
                     case Winner.Black:
@@ -74,7 +87,7 @@ namespace Damka
                         this.board.Reset();
                         break;
                 }
-                ShowMove(GetBestMove(secondDepth, false));
+                ShowMove(this.search.GetBestMove(secondDepth, false, this.board.GetDamkaBoard()));
                 switch (this.board.GetDamkaBoard().WhoWins())
                 {
                     case Winner.Black:
@@ -94,6 +107,7 @@ namespace Damka
                 }
             }
         }
+       
 
         public void Button_Click(object sender, EventArgs e)
         {
@@ -116,7 +130,7 @@ namespace Damka
                     this.board.ClearMoves();
                     this.board.AppendFromDamkaBoard(tmpBoard);
                     Application.DoEvents();
-                    DamkaBoard bestMove = GetBestMove(this.depth, false);
+                    DamkaBoard bestMove = this.search.GetBestMove(this.depth, isBlack, this.board.GetDamkaBoard());
                     if (bestMove == null)
                     {
                         MessageBox.Show("Red won!");
@@ -147,200 +161,49 @@ namespace Damka
                     return;
                 }
                 this.board.ClearMoves();
-                this.board.ShowMoves(clickedCell);
+                this.board.ShowMoves(clickedCell, this.isBlack);
                 this.isThinking = false;
             });
             this.doTurn.Start();
         }
-        private int MinMax(DamkaBoard board, int depth, bool isRed, int alpha = int.MinValue, int beta = int.MaxValue, bool isFirstMove = true, bool doNull = true)
-        {
-            if (depth <= 0 || board.WhoWins() != Winner.NoOne)
-            {
-                if (!board.IsSkipRequired(isRed))
-                {
-                    return board.Evaluate(isRed);
-                }
-            }
-
-            //if (depth >= 4 && !isFirstMove && doNull)
-            //{
-            //    int eval = MinMax(board.MakeNullMove(), depth - 4, !isRed,  beta, beta - 1, isFirstMove, false);
-            //    if (eval >= beta)
-            //    {
-            //        return beta;
-            //    }
-            //}
-
-            if (isRed)
-            {
-                int minEval = int.MaxValue;
-                foreach (DamkaBoard tmpBoard in board.GetAllMoves(isRed))
-                {
-                    int eval = MinMax(tmpBoard, depth - 1, !isRed, alpha, beta, false, doNull);
-                    minEval = Math.Min(minEval, eval);
-                    beta = Math.Min(beta, eval);
-                    if (beta <= alpha)
-                    {
-                        break;
-                    }
-                }
-                return minEval;
-            }
-
-            else
-            {
-                int maxEval = int.MinValue;
-                foreach (DamkaBoard tmpBoard in board.GetAllMoves(isRed))
-                {
-                    int eval = MinMax(tmpBoard, depth - 1, !isRed, alpha, beta, false, doNull);
-                    maxEval = Math.Max(maxEval, eval);
-                    alpha = Math.Max(alpha, eval);
-                    if (beta <= alpha)
-                    {
-                        break;
-                    }
-                }
-                return maxEval;
-            }
-        }
-
+       
         private void ShowMove(DamkaBoard move)
         {
             this.board.AppendFromDamkaBoard(move);
             Application.DoEvents();
-            Thread.Sleep(30);
-            Application.DoEvents();
+            //Thread.Sleep(30);
+            //Application.DoEvents();
         }
 
-        private DamkaBoard GetBestMove(int depth, bool isRed)
-        {
-            DamkaBoard[] moves = this.board.GetDamkaBoard().GetAllMoves(isRed);
-            if (moves.Length == 1)
-            {
-                return moves[0];
-            }
-            this.movesWithEvaluations = new List<Tuple<DamkaBoard, int>>(moves.Length);
-            DamkaBoard[] shuffledMoves = moves.OrderBy(a => Guid.NewGuid()).ToArray();
-            foreach (DamkaBoard move in shuffledMoves)
-            {
-                GetEvalNewThread(move, depth, !isRed);
-            }
-            while (true)
-            {
-                if (movesWithEvaluations.Count == moves.Length)
-                {
-                    if (movesWithEvaluations.Count == 0)
-                    {
-                        return null;
-                    }
-                    if (isRed)
-                    {
-                        movesWithEvaluations.Sort((x, y) => x.Item2.CompareTo(y.Item2));
-                    }
-                    else
-                    {
-                        movesWithEvaluations.Sort((x, y) => y.Item2.CompareTo(x.Item2));
-                    }
-                    return movesWithEvaluations.First().Item1;
-                }
-            }
-        }
-
+        
         private void SetEvaluation()
         {
             evaluationThread = new Thread(() =>
             {
-                int depth = 2;
+                int depth = 1;
                 while (depth <= 20)
                 {
-                    double eval = (double)(GetEvaluation(depth, true)) / -100;
-                    this.evaluation.Text = eval.ToString() + " {" + depth + "}";
+                    int eval = this.search.GetEvaluation(depth, !this.isBlack, this.board.GetDamkaBoard());
+                    if (eval > 100000)
+                    {
+                        this.evaluation.Text = "B#";
+                        break;
+                    }
+                    else if (eval < -100000)
+                    {
+                        this.evaluation.Text = "R#";
+                        break;
+                    }
+                    else
+                    {
+                        this.evaluation.Text = ((double)eval/-100).ToString() + " {" + depth + "}";
+                    }
                     depth++;
                 }
             });
             evaluationThread.Start();
         }
-
-        private int GetEvaluationMultiThread(int depth, bool isRed)
-        {
-            DamkaBoard[] moves = this.board.GetDamkaBoard().GetAllMoves(isRed);
-            this.movesWithEvaluations = new List<Tuple<DamkaBoard, int>>(moves.Length);
-            DamkaBoard[] shuffledMoves = moves.OrderBy(a => Guid.NewGuid()).ToArray();
-            foreach (DamkaBoard move in shuffledMoves)
-            {
-                GetEvalNewThread(move, depth, !isRed);
-            }
-            while (true)
-            {
-                if (movesWithEvaluations.Count == moves.Length)
-                {
-                    if (movesWithEvaluations.Count == 0)
-                    {
-                        if (isRed)
-                        {
-                            return int.MaxValue - 1;
-                        }
-                        else
-                        {
-                            return int.MinValue + 1;
-                        }
-                    }
-                    if (isRed)
-                    {
-                        movesWithEvaluations.Sort((x, y) => x.Item2.CompareTo(y.Item2));
-                    }
-                    else
-                    {
-                        movesWithEvaluations.Sort((x, y) => y.Item2.CompareTo(x.Item2));
-                    }
-                    return movesWithEvaluations.First().Item2;
-                }
-            }
-        }
-
-        private int GetEvaluation(int depth, bool isRed)
-        {
-            DamkaBoard[] moves = this.board.GetDamkaBoard().GetAllMoves(isRed);
-            this.movesWithEvaluations = new List<Tuple<DamkaBoard, int>>(moves.Length);
-            DamkaBoard[] shuffledMoves = moves.OrderBy(a => Guid.NewGuid()).ToArray();
-            int bestEval;
-            if (isRed)
-            {
-                bestEval = int.MaxValue;
-                foreach (DamkaBoard move in shuffledMoves)
-                {
-                    int moveEval = MinMax(move, depth, !isRed);
-                    if (moveEval < bestEval)
-                    {
-                        bestEval = moveEval;
-                    }
-                }
-            }
-            else
-            {
-                bestEval = int.MinValue;
-                foreach (DamkaBoard move in shuffledMoves)
-                {
-                    int moveEval = MinMax(move, depth, !isRed);
-                    if (moveEval > bestEval)
-                    {
-                        bestEval = moveEval;
-                    }
-                }
-            }
-            return bestEval;
-        }
-
-        private void GetEvalNewThread(DamkaBoard move, int depth, bool isRed)
-        {
-            Thread Evaluate = new Thread(() =>
-            {
-                int moveEval = MinMax(move, depth, isRed);
-                this.movesWithEvaluations.Add(new Tuple<DamkaBoard, int>(move, moveEval));
-            });
-            Evaluate.Start();
-        }
-
+      
         private void UncheckAll()
         {
             foreach (ToolStripMenuItem item in levelToolStripMenuItem.DropDownItems)
@@ -366,14 +229,14 @@ namespace Damka
         {
             UncheckAll();
             ((ToolStripMenuItem)sender).Checked = true;
-            this.depth = 8;
+            this.depth = 7;
         }
 
         private void SuperHard2030SecondsToolStripMenuItem_Click(object sender, EventArgs e)
         {
             UncheckAll();
             ((ToolStripMenuItem)sender).Checked = true;
-            this.depth = 9;
+            this.depth = 8;
         }
 
         private void ResetTurnThread()
@@ -392,15 +255,14 @@ namespace Damka
                 {
                     this.evaluationThread.Abort();
                 }
-            }
-            
+            }         
         }
 
         private void ResetToolStripMenuItem_Click(object sender, EventArgs e)
         {
             ResetTurnThread();
-            SetEvaluation();
             this.board.Reset();
+            SetEvaluation();
         }
 
         private void SaveToolStripMenuItem_Click(object sender, EventArgs e)
@@ -439,7 +301,7 @@ namespace Damka
             }
             Thread GetEval = new Thread(() =>
             {
-                MessageBox.Show((GetEvaluation(6, true) * -1).ToString(), "Evaluation");
+                MessageBox.Show((this.search.GetEvaluation(6, true, this.board.GetDamkaBoard()) * -1).ToString(), "Evaluation");
             });
             GetEval.Start();
         }
@@ -493,7 +355,19 @@ namespace Damka
 
         private void Damka_FormClosing(object sender, FormClosingEventArgs e)
         {
+            this.tTable.Save(this.transpositionTablePath);
             Environment.Exit(Environment.ExitCode);
+        }
+
+        private void ChangeColorToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (this.isThinking)
+            {
+                MessageBox.Show("Can't change color now, wait for your opponent to end his turn...");
+                return;
+            }
+            this.board.ClearMoves();
+            isBlack = !isBlack;
         }
     }
 }
